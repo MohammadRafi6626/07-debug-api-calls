@@ -4,21 +4,33 @@ const movieResults = document.getElementById('movie-results');
 
 const watchlist = new Set(); // Use a Set to avoid duplicates
 const watchlistContainer = document.getElementById('watchlist');
+const apiKey = '3eb7d0fc'; // Replace with your OMDb API key
 
 // Function to fetch movies from the OMDb API
 async function fetchMovies(query) {
-  const apiKey = 'your-api-key'; // Replace with your OMDb API key
   const url = `https://www.omdbapi.com/?s=${query}&apikey=${apiKey}`;
+  try {
+    // Fetch data from the API
+    const response = await fetch(url);
+    // Check if the response status is not OK
+    if (!response.ok) {
+      // Log error details
+      console.error(`Error: ${response.status} ${response.statusText}`);
+      movieResults.innerHTML = `<p class="error-message">Something went wrong. Please try again later.</p>`;
+      return;
+    }
+    const data = await response.json();
 
-  // Fetch data from the API
-  const response = await fetch(url);
-  const data = await response.json();
-
-  // Check if the response contains movies
-  if (data.Response === 'True') {
-    displayMovies(data.Search);
-  } else {
-    movieResults.innerHTML = '<p class="no-results">No results found. Please try a different search.</p>';
+    // Check if the response contains movies
+    if (data.Response === 'True') {
+      displayMovies(data.Search);
+    } else {
+      movieResults.innerHTML = '<p class="no-results">No results found. Please try a different search.</p>';
+    }
+  } catch (error) {
+    // Log error details
+    console.error('Fetch error:', error);
+    movieResults.innerHTML = `<p class="error-message">Unable to fetch movies. Please check your connection and try again.</p>`;
   }
 }
 
@@ -50,24 +62,35 @@ async function updateWatchlistDisplay() {
     watchlistContainer.innerHTML = '<p>Your watchlist is empty. Search for movies to add!</p>';
   } else {
     watchlist.forEach(async (movieID) => {
-      const apiKey = 'your-api-key'; // Replace with your OMDb API key
-      const url = `https://www.omdbapi.com/?i=${movieID}&apikey=${apiKey}`;
-      const response = await fetch(url);
-      const movie = await response.json();
+      try {
+        const url = `https://www.omdbapi.com/?i=${movieID}&apikey=${apiKey}`;
+        const response = await fetch(url);
+        if (!response.ok) {
+          // Log error details
+          console.error(`Error fetching movie ${movieID}: ${response.status} ${response.statusText}`);
+          watchlistContainer.innerHTML += `<p class="error-message">Could not load a movie in your watchlist. Please try again later.</p>`;
+          return;
+        }
+        const movie = await response.json();
 
-      const watchlistCard = document.createElement('div');
-      watchlistCard.classList.add('movie-card');
+        const watchlistCard = document.createElement('div');
+        watchlistCard.classList.add('movie-card');
 
-      watchlistCard.innerHTML = `
-        <img src="${movie.Poster}" alt="${movie.Title}" class="movie-poster">
-        <div class="movie-info">
-          <h3 class="movie-title">${movie.Title}</h3>
-          <p class="movie-year">${movie.Year}</p>
-          <button class="btn btn-remove" onclick='removeFromWatchlist("${movie.imdbID}")'>Remove</button>
-        </div>
-      `;
+        watchlistCard.innerHTML = `
+          <img src="${movie.Poster}" alt="${movie.Title}" class="movie-poster">
+          <div class="movie-info">
+            <h3 class="movie-title">${movie.Title}</h3>
+            <p class="movie-year">${movie.Year}</p>
+            <button class="btn btn-remove" onclick='removeFromWatchlist("${movie.imdbID}")'>Remove</button>
+          </div>
+        `;
 
-      watchlistContainer.appendChild(watchlistCard);
+        watchlistContainer.appendChild(watchlistCard);
+      } catch (error) {
+        // Log error details
+        console.error(`Fetch error for movie ${movieID}:`, error);
+        watchlistContainer.innerHTML += `<p class="error-message">Unable to load a movie in your watchlist. Please check your connection and try again.</p>`;
+      }
     });
   }
 }
